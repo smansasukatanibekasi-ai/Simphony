@@ -1,0 +1,100 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function isAdmin() { 
+      return isSignedIn() && (
+        request.auth.token.email == "smansasukatanibekasi@gmail.com" || 
+        request.auth.token.email == "kemangsukatani7@gmail.com"
+      ); 
+    }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // 1. User Profiles
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidUser(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'treeLevel', 'lastWatered'])
+      );
+
+      function isValidUser(data) {
+        return data.uid == request.auth.uid &&
+               data.email is string &&
+               data.email.size() < 100 &&
+               (data.displayName == null || (data.displayName is string && data.displayName.size() < 100)) &&
+               (data.treeLevel == null || data.treeLevel is number);
+      }
+    }
+
+    // 2. Community Posts
+    match /posts/{postId} {
+      allow read: if isSignedIn();
+      allow create: if isVerified() && isValidPost(incoming());
+      allow update: if isVerified() && (
+        (isOwner(existing().authorId) && isValidPost(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['content', 'likes'])) ||
+        (isValidPost(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['likes']))
+      );
+      allow delete: if isAdmin() || (isSignedIn() && isOwner(existing().authorId));
+
+      function isValidPost(data) {
+        return data.authorId == request.auth.uid &&
+               data.content is string && data.content.size() > 0 && data.content.size() < 5000 &&
+               data.authorName is string &&
+               data.createdAt is timestamp;
+      }
+    }
+
+    // 3. Consultations
+    match /consultations/{consultationId} {
+      allow read: if isAdmin() || isOwner(existing().userId);
+      allow create: if isVerified() && isValidConsultation(incoming(), false);
+      allow update: if (isAdmin() || isOwner(existing().userId)) && isValidConsultation(incoming(), true) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['messages', 'status', 'updatedAt'])
+      );
+
+      function isValidConsultation(data, isUpdate) {
+        return (isUpdate || data.userId == request.auth.uid) &&
+               data.category in ["Bullying", "Keluarga", "Circle Pertemanan", "Masalah Pribadi", "Direct Guru BK"] &&
+               data.status in ["open", "closed"] &&
+               data.messages is list;
+      }
+    }
+
+    // 4. Peer Messages
+    match /peer_messages/{messageId} {
+      allow read: if isAdmin() || isOwner(existing().senderId);
+      allow create: if isVerified() && isValidPeerMessage(incoming());
+      allow update: if isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['response']);
+
+      function isValidPeerMessage(data) {
+        return data.senderId == request.auth.uid &&
+               data.content is string && data.content.size() > 0 && data.content.size() < 2000 &&
+               data.receiverId in ["Abdul", "Zahra", "Raghat", "S1", "S2"];
+      }
+    }
+
+    // 5. Moods
+    match /moods/{moodId} {
+      allow read: if isOwner(existing().userId);
+      allow create: if isVerified() && isValidMood(incoming());
+      allow delete: if isOwner(existing().userId);
+
+      function isValidMood(data) {
+        return data.userId == request.auth.uid &&
+               data.moodScore is number && data.moodScore >= 0 && data.moodScore <= 10 &&
+               data.createdAt is timestamp;
+      }
+    }
+  }
+}

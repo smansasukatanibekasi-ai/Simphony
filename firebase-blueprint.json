@@ -1,0 +1,90 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account and gamification data",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "treeLevel": { "type": "number", "description": "Current level of the Simphony Tree" },
+        "lastWatered": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Post": {
+      "title": "Community Post",
+      "description": "Public post in the community section",
+      "type": "object",
+      "properties": {
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "likes": { "type": "array" }
+      },
+      "required": ["authorId", "content", "createdAt"]
+    },
+    "Consultation": {
+      "title": "Private Consultation",
+      "description": "Private chat with admin/counselors",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "category": { "type": "string", "enum": ["Bullying", "Keluarga", "Circle Pertemanan", "Masalah Pribadi"] },
+        "messages": { "type": "array" },
+        "status": { "type": "string", "enum": ["open", "closed"] },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "category", "status"]
+    },
+    "PeerMessage": {
+      "title": "Peer Support Message",
+      "description": "Messages sent to peer supporters",
+      "type": "object",
+      "properties": {
+        "senderId": { "type": "string" },
+        "receiverId": { "type": "string", "enum": ["Abdul", "Zahra", "Raghat"] },
+        "content": { "type": "string" },
+        "response": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Mood": {
+      "title": "Mood Entry",
+      "description": "Daily mood tracking",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "moodScore": { "type": "number" },
+        "note": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles and settings"
+    },
+    "/posts/{postId}": {
+      "schema": "Post",
+      "description": "Community posts"
+    },
+    "/consultations/{consultationId}": {
+      "schema": "Consultation",
+      "description": "Private consultations sessions"
+    },
+    "/peer_messages/{messageId}": {
+      "schema": "PeerMessage",
+      "description": "Messages for peer support"
+    },
+    "/moods/{moodId}": {
+      "schema": "Mood",
+      "description": "Mood tracking log"
+    }
+  }
+}
