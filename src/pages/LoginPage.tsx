@@ -4,6 +4,28 @@ import { LogIn, Shield, Heart, Sparkles, MessageSquare } from 'lucide-react';
 import { signInWithGoogle } from '../lib/firebase';
 
 export default function LoginPage() {
+  const [error, setError] = React.useState<string | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = React.useState(false);
+
+  const handleLogin = async () => {
+    try {
+      setIsLoggingIn(true);
+      setError(null);
+      await signInWithGoogle();
+    } catch (err: any) {
+      console.error('Login error:', err);
+      if (err.code === 'auth/popup-blocked') {
+        setError('Popup terblokir oleh browser. Tolong izinkan popup untuk situs ini.');
+      } else if (err.code === 'auth/unauthorized-domain') {
+        setError('Domain tidak diizinkan. Hubungi pengembang untuk menambahkan domain ini ke Firebase.');
+      } else {
+        setError('Gagal masuk. Silakan coba lagi.');
+      }
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-brand-bg flex items-center justify-center p-6 relative overflow-hidden">
       {/* Background Decorative Elements */}
@@ -23,7 +45,7 @@ export default function LoginPage() {
           <p className="text-[10px] uppercase tracking-[0.3em] opacity-40 font-bold mt-2">Student Harmony & Networking</p>
         </div>
 
-        <div className="space-y-6 mb-12">
+        <div className="space-y-6 mb-8">
           <div className="flex items-center gap-4 text-left p-4 bg-white/40 rounded-3xl border border-stone-100">
             <div className="w-10 h-10 rounded-full bg-brand-sidebar flex items-center justify-center text-brand-secondary">
               <Heart size={20} />
@@ -44,12 +66,27 @@ export default function LoginPage() {
           </div>
         </div>
 
+        {error && (
+          <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl text-[10px] text-rose-600 font-bold italic">
+            {error}
+          </div>
+        )}
+
         <button 
-          onClick={signInWithGoogle}
-          className="w-full bg-brand-primary text-white py-5 rounded-full font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-xl shadow-brand-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
+          onClick={handleLogin}
+          disabled={isLoggingIn}
+          className="w-full bg-brand-primary text-white py-5 rounded-full font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-xl shadow-brand-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
         >
-          <LogIn size={20} />
-          Masuk dengan Akun Sekolah
+          {isLoggingIn ? (
+            <motion.div 
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+              className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+            />
+          ) : (
+            <LogIn size={20} />
+          )}
+          {isLoggingIn ? 'Memproses...' : 'Masuk dengan Akun Sekolah'}
         </button>
 
         <p className="mt-8 text-[10px] text-stone-400 font-medium italic">

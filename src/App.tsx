@@ -183,38 +183,42 @@ export default function App() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
-      if (authUser) {
-        const userDocRef = doc(db, 'users', authUser.uid);
-        const userDoc = await getDoc(userDocRef);
-        
-        let userProfile: UserProfile;
-        if (userDoc.exists()) {
-          userProfile = userDoc.data() as UserProfile;
-          // Update admin status based on current email (in case it changed or for smansasukatani)
-          const isAdmin = authUser.email === 'smansasukatanibekasi@gmail.com' || authUser.email === 'kemangsukatani7@gmail.com';
-          if (userProfile.isAdmin !== isAdmin) {
-            userProfile.isAdmin = isAdmin;
-            await setDoc(userDocRef, { ...userProfile, isAdmin }, { merge: true });
+      try {
+        if (authUser) {
+          const userDocRef = doc(db, 'users', authUser.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          let userProfile: UserProfile;
+          if (userDoc.exists()) {
+            userProfile = userDoc.data() as UserProfile;
+            const isAdmin = authUser.email === 'smansasukatanibekasi@gmail.com' || authUser.email === 'kemangsukatani7@gmail.com';
+            if (userProfile.isAdmin !== isAdmin) {
+              userProfile.isAdmin = isAdmin;
+              await setDoc(userDocRef, { ...userProfile, isAdmin }, { merge: true });
+            }
+          } else {
+            userProfile = {
+              uid: authUser.uid,
+              email: authUser.email!,
+              displayName: authUser.displayName || 'Siswa',
+              photoURL: authUser.photoURL || '',
+              treeLevel: 1,
+              lastWatered: null,
+              isAdmin: authUser.email === 'smansasukatanibekasi@gmail.com' || authUser.email === 'kemangsukatani7@gmail.com'
+            };
+            await setDoc(userDocRef, userProfile);
           }
+          setUser(authUser);
+          setProfile(userProfile);
         } else {
-          userProfile = {
-            uid: authUser.uid,
-            email: authUser.email!,
-            displayName: authUser.displayName || 'Siswa',
-            photoURL: authUser.photoURL || '',
-            treeLevel: 1,
-            lastWatered: null,
-            isAdmin: authUser.email === 'smansasukatanibekasi@gmail.com' || authUser.email === 'kemangsukatani7@gmail.com'
-          };
-          await setDoc(userDocRef, userProfile);
+          setUser(null);
+          setProfile(null);
         }
-        setUser(authUser);
-        setProfile(userProfile);
-      } else {
-        setUser(null);
-        setProfile(null);
+      } catch (error) {
+        console.error('Auth check error:', error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
     return () => unsubscribe();
   }, []);
