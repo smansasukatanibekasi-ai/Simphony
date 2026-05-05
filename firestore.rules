@@ -96,5 +96,11 @@ service cloud.firestore {
                data.createdAt is timestamp;
       }
     }
+
+    // 6. Settings (Branding)
+    match /settings/branding {
+      allow read: if true; // Allow public read for logo on login screen
+      allow write: if isAdmin();
+    }
   }
 }

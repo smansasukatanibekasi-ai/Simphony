@@ -63,6 +63,16 @@
         "note": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       }
+    },
+    "BrandingSettings": {
+      "title": "Application Branding",
+      "description": "Branding elements like logos and colors",
+      "type": "object",
+      "properties": {
+        "logoUrl": { "type": "string", "description": "Base64 or URL of the logo" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "updatedBy": { "type": "string" }
+      }
     }
   },
   "firestore": {
@@ -85,6 +95,10 @@
     "/moods/{moodId}": {
       "schema": "Mood",
       "description": "Mood tracking log"
+    },
+    "/settings/branding": {
+      "schema": "BrandingSettings",
+      "description": "App branding configuration"
     }
   }
 }
