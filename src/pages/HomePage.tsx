@@ -3,8 +3,9 @@ import { Sparkles, Users, MessageSquare, Bot, Heart, Leaf, BookOpen, ChevronRigh
 import { Link } from 'react-router-dom';
 import { UserProfile } from '../types';
 import { COUNSELORS } from '../constants';
+import Logo from '../components/Logo';
 
-export default function HomePage({ profile }: { profile: UserProfile | null }) {
+export default function HomePage({ profile, logoUrl }: { profile: UserProfile | null, logoUrl: string | null }) {
   const features = [
     { name: 'Komunitas', path: '/komunitas', icon: Users, color: 'bg-[#CCD5AE] text-[#5A5A40]', label: '☮', desc: 'Wadah berbagi pengalaman.' },
     { name: 'Konsultasi', path: '/konsultasi', icon: MessageSquare, color: 'bg-[#E9EDC9] text-[#5A5A40]', label: '✎', desc: 'Bicara dengan para ahli.' },
@@ -25,7 +26,10 @@ export default function HomePage({ profile }: { profile: UserProfile | null }) {
           <div className="absolute -right-10 -top-10 w-64 h-64 tree-gradient rounded-full opacity-10 blur-3xl"></div>
           
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-widest text-brand-primary mb-6">Mood & Pertumbuhan</h3>
+            <div className="flex justify-between items-start mb-6">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-brand-primary">Mood & Pertumbuhan</h3>
+              <Logo logoUrl={logoUrl} size="md" className="hidden lg:flex" />
+            </div>
             <div className="flex flex-col md:flex-row items-center gap-10">
               <div className="w-40 h-40 flex flex-col items-center justify-center relative">
                 <div className="w-24 h-32 bg-brand-secondary rounded-full opacity-20 absolute bottom-0 blur-2xl"></div>

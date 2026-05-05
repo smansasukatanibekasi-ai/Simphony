@@ -2,8 +2,9 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { LogIn, Shield, Heart, Sparkles, MessageSquare } from 'lucide-react';
 import { signInWithGoogle } from '../lib/firebase';
+import Logo from '../components/Logo';
 
-export default function LoginPage() {
+export default function LoginPage({ logoUrl }: { logoUrl: string | null }) {
   const [error, setError] = React.useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = React.useState(false);
 
@@ -38,9 +39,9 @@ export default function LoginPage() {
         animate={{ opacity: 1, y: 0 }}
         className="max-w-md w-full glass rounded-[60px] p-10 md:p-14 shadow-2xl relative z-10 border-white/50 text-center"
       >
-        <div className="mb-10">
-          <div className="w-20 h-20 bg-brand-cream rounded-[30px] flex items-center justify-center mx-auto mb-6 shadow-sm border border-brand-accent/20">
-            <Sparkles size={40} className="text-brand-primary" />
+        <div className="mb-10 flex flex-col items-center">
+          <div className="mb-6">
+            <Logo logoUrl={logoUrl} size="xl" />
           </div>
           <h1 className="serif text-5xl font-bold text-brand-primary tracking-tight">SIMPHONY</h1>
           <p className="text-[10px] uppercase tracking-[0.3em] opacity-40 font-bold mt-2">Student Harmony & Networking</p>

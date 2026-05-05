@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ShieldCheck, Users, MessageSquare, Heart, Trash2, Award, Zap } from 'lucide-react';
-import { collection, query, getDocs, limit, orderBy } from 'firebase/firestore';
+import { ShieldCheck, Users, MessageSquare, Heart, Trash2, Award, Zap, Settings, Camera, AlertCircle } from 'lucide-react';
+import { collection, query, getDocs, limit, orderBy, doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { UserProfile, Post, Consultation, PeerMessage } from '../types';
 import { Link } from 'react-router-dom';
+import Logo from '../components/Logo';
 
 export default function AdminPage({ profile }: { profile: UserProfile | null }) {
   const [stats, setStats] = useState({
@@ -13,6 +14,24 @@ export default function AdminPage({ profile }: { profile: UserProfile | null }) 
     consultations: 0,
     messages: 0
   });
+
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [isUpdatingLogo, setIsUpdatingLogo] = useState(false);
+  const [logoError, setLogoError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const settingsDoc = await getDoc(doc(db, 'settings', 'branding'));
+        if (settingsDoc.exists()) {
+          setLogoUrl(settingsDoc.data().logoUrl);
+        }
+      } catch (err) {
+        console.error('Error fetching settings:', err);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -44,6 +63,42 @@ export default function AdminPage({ profile }: { profile: UserProfile | null }) 
       </div>
     );
   }
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check size (max 2MB for base64 storage in Firestore)
+    if (file.size > 2 * 1024 * 1024) {
+      setLogoError('Ukuran file terlalu besar (Maks 2MB).');
+      return;
+    }
+
+    try {
+      setIsUpdatingLogo(true);
+      setLogoError(null);
+      
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64String = reader.result as string;
+        
+        await setDoc(doc(db, 'settings', 'branding'), {
+          logoUrl: base64String,
+          updatedAt: new Date(),
+          updatedBy: profile?.uid
+        }, { merge: true });
+        
+        setLogoUrl(base64String);
+        setIsUpdatingLogo(false);
+        alert('Logo berhasil diperbarui! Muat ulang halaman jika logo belum berubah di navigasi.');
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Error uploading logo:', err);
+      setLogoError('Gagal memperbarui logo.');
+      setIsUpdatingLogo(false);
+    }
+  };
 
   const statCards = [
     { label: 'Total Siswa', value: stats.users, icon: Users, color: 'bg-blue-50 text-blue-600', link: '#' },
@@ -96,6 +151,57 @@ export default function AdminPage({ profile }: { profile: UserProfile | null }) 
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
         <div className="bg-white p-10 rounded-[50px] border border-stone-100 card-shadow space-y-8">
+          <div className="flex justify-between items-center">
+            <h2 className="serif text-2xl italic text-brand-primary flex items-center gap-3">
+              <Settings size={24} /> Pengaturan Branding
+            </h2>
+          </div>
+          
+          <div className="p-6 bg-brand-sidebar/20 rounded-[40px] border border-brand-accent/10">
+            <div className="flex items-center gap-8">
+              <div className="p-4 bg-white rounded-3xl border border-stone-100 shadow-sm">
+                <Logo logoUrl={logoUrl} size="lg" />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs font-bold text-stone-800 mb-1">Logo Aplikasi</p>
+                <p className="text-[10px] text-stone-500 italic mb-4">Ubah logo Simphony langsung dari perangkat anda.</p>
+                
+                <div className="relative">
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleLogoUpload}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    disabled={isUpdatingLogo}
+                  />
+                  <button 
+                    disabled={isUpdatingLogo}
+                    className="flex items-center gap-2 px-6 py-2 bg-brand-primary text-white text-[10px] font-black uppercase tracking-widest rounded-full hover:scale-105 transition-all disabled:opacity-50"
+                  >
+                    <Camera size={14} />
+                    {isUpdatingLogo ? 'Mengunggah...' : 'Pilih Logo'}
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            {logoError && (
+              <div className="mt-4 flex items-center gap-2 text-rose-500 text-[10px] font-bold italic">
+                <AlertCircle size={12} />
+                {logoError}
+              </div>
+            )}
+            
+            <div className="mt-6 pt-6 border-t border-brand-accent/10">
+              <p className="text-[9px] text-stone-400 font-medium italic">
+                * Logo akan muncul di Login Screen dan Navigasi Utama. <br />
+                * Jika logo dihapus atau tidak valid, sistem akan menampilkan logo default "S" hijau daun.
+              </p>
+            </div>
+          </div>
+
+          <hr className="border-stone-50" />
+
           <h2 className="serif text-2xl italic text-brand-primary flex items-center gap-3">
             <Award size={24} /> Panduan Moderasi
           </h2>

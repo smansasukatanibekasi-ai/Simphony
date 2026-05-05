@@ -32,8 +32,9 @@ import GamificationPage from './pages/GamificationPage';
 import ResearchPage from './pages/ResearchPage';
 import LoginPage from './pages/LoginPage';
 import AdminPage from './pages/AdminPage';
+import Logo from './components/Logo';
 
-function Navigation({ profile }: { profile: UserProfile | null }) {
+function Navigation({ profile, logoUrl }: { profile: UserProfile | null, logoUrl: string | null }) {
   const location = useLocation();
   const isAdmin = profile?.isAdmin || false;
 
@@ -55,9 +56,12 @@ function Navigation({ profile }: { profile: UserProfile | null }) {
   return (
     <>
       <nav id="desktop-nav" className="hidden lg:flex flex-col w-64 h-[calc(100vh-48px)] fixed top-6 left-6 bg-white/90 border border-stone-200/50 rounded-[32px] p-6 glass shadow-2xl shadow-stone-200/50 z-50">
-        <div className="mb-10 px-2">
-          <h1 className="serif text-3xl font-bold tracking-tight text-brand-primary">SIMPHONY</h1>
-          <p className="text-[9px] uppercase tracking-widest text-brand-primary/80 font-bold leading-tight mt-1">Student Harmony</p>
+        <div className="mb-10 px-2 flex items-center gap-3">
+          <Logo logoUrl={logoUrl} size="sm" />
+          <div>
+            <h1 className="serif text-xl font-bold tracking-tight text-brand-primary">SIMPHONY</h1>
+            <p className="text-[9px] uppercase tracking-widest text-brand-primary/80 font-bold leading-tight">Student Harmony</p>
+          </div>
         </div>
         
         <div className="flex flex-col gap-2 overflow-y-auto no-scrollbar">
@@ -127,7 +131,7 @@ function Navigation({ profile }: { profile: UserProfile | null }) {
   );
 }
 
-function Header({ user, profile }: { user: any, profile: UserProfile | null }) {
+function Header({ user, profile, logoUrl }: { user: any, profile: UserProfile | null, logoUrl: string | null }) {
   const location = useLocation();
   const getPageTitle = () => {
     if (location.pathname === '/') return '"Suaramu berharga, harimu bermakna."';
@@ -143,9 +147,12 @@ function Header({ user, profile }: { user: any, profile: UserProfile | null }) {
 
   return (
     <header className="px-4 md:px-8 py-4 md:py-6 flex justify-between items-center md:items-end mb-4">
-      <div className="max-w-[60%] md:max-w-xl">
-        <h2 className="serif text-xl md:text-4xl italic text-brand-primary leading-tight line-clamp-2 md:line-clamp-none">{getPageTitle()}</h2>
-        <p className="hidden xs:block text-[8px] md:text-xs text-stone-700 mt-1 md:mt-2 italic font-medium">Aman, Terpercaya, dan Mendukung Pertumbuhanmu.</p>
+      <div className="flex items-center gap-4 max-w-[70%]">
+        <Logo logoUrl={logoUrl} size="md" className="lg:hidden" />
+        <div className="max-w-full">
+          <h2 className="serif text-xl md:text-4xl italic text-brand-primary leading-tight line-clamp-2 md:line-clamp-none">{getPageTitle()}</h2>
+          <p className="hidden xs:block text-[8px] md:text-xs text-stone-700 mt-1 md:mt-2 italic font-medium">Aman, Terpercaya, dan Mendukung Pertumbuhanmu.</p>
+        </div>
       </div>
       
       <div className="flex items-center gap-2 md:gap-4">
@@ -179,7 +186,22 @@ function Header({ user, profile }: { user: any, profile: UserProfile | null }) {
 export default function App() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const settingsDoc = await getDoc(doc(db, 'settings', 'branding'));
+        if (settingsDoc.exists()) {
+          setLogoUrl(settingsDoc.data().logoUrl);
+        }
+      } catch (err) {
+        console.error('Error fetching settings:', err);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
@@ -238,20 +260,20 @@ export default function App() {
   }
 
   if (!user) {
-    return <LoginPage />;
+    return <LoginPage logoUrl={logoUrl} />;
   }
 
   return (
     <div className="flex min-h-screen bg-brand-bg text-[#2C2C2C]">
-      <Navigation profile={profile} />
+      <Navigation profile={profile} logoUrl={logoUrl} />
       
       <main className="flex-1 lg:pl-[280px] lg:pb-0 pb-32">
-        <Header user={user} profile={profile} />
+        <Header user={user} profile={profile} logoUrl={logoUrl} />
         
         <div className="px-6 md:px-10 pb-12 w-full">
           <AnimatePresence mode="wait">
             <Routes>
-              <Route path="/" element={<HomePage profile={profile} />} />
+              <Route path="/" element={<HomePage profile={profile} logoUrl={logoUrl} />} />
               <Route path="/komunitas" element={<CommunityPage user={user} profile={profile} />} />
               <Route path="/konsultasi" element={<ConsultationPage user={user} profile={profile} />} />
               <Route path="/bot" element={<ChatBotPage user={user} />} />
