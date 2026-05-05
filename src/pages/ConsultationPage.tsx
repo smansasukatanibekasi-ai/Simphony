@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, MessageSquare, Send, Calendar, Shield, Users, CheckCircle2, ChevronRight, MessageCircle, X, Search, Filter, Plus, Trash2 } from 'lucide-react';
+import { User, MessageSquare, Send, Calendar, Shield, Users, CheckCircle2, ChevronRight, MessageCircle, X, Search, Filter, Plus, Trash2, Heart } from 'lucide-react';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, updateDoc, doc, arrayUnion, orderBy, arrayRemove, Timestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Consultation, ConsultationCategory, ConsultationStatus, Message, UserProfile } from '../types';
@@ -134,6 +134,34 @@ export default function ConsultationPage({ user, profile }: { user: any, profile
     ConsultationCategory.DIRECT_BK
   ];
 
+  const categoryDetails: Record<ConsultationCategory, { icon: any, desc: string, color: string }> = {
+    [ConsultationCategory.BULLYING]: { 
+      icon: Shield, 
+      desc: 'Laporkan tindakan perundungan dengan aman.',
+      color: 'bg-rose-50 text-rose-600'
+    },
+    [ConsultationCategory.KELUARGA]: { 
+      icon: Calendar, 
+      desc: 'Bicara tentang masalah di lingkungan rumah.',
+      color: 'bg-blue-50 text-blue-600'
+    },
+    [ConsultationCategory.CIRCLE]: { 
+      icon: Users, 
+      desc: 'Curhat tentang teman atau lingkungan sekolah.',
+      color: 'bg-emerald-50 text-emerald-600'
+    },
+    [ConsultationCategory.PRIBADI]: { 
+      icon: Heart, 
+      desc: 'Masalah diri sendiri yang ingin kamu bagi.',
+      color: 'bg-amber-50 text-amber-600'
+    },
+    [ConsultationCategory.DIRECT_BK]: { 
+      icon: MessageCircle, 
+      desc: 'Hubungi Guru BK secara langsung.',
+      color: 'bg-stone-50 text-stone-600'
+    }
+  };
+
   const filteredConsultations = consultations.filter(c => 
     activeTab === 'active' ? c.status === ConsultationStatus.OPEN : c.status === ConsultationStatus.CLOSED
   );
@@ -233,32 +261,36 @@ export default function ConsultationPage({ user, profile }: { user: any, profile
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex-1 flex flex-col p-12 overflow-y-auto"
+                className="flex-1 flex flex-col p-6 sm:p-12 overflow-y-auto"
               >
                 {!isAdmin ? (
                   <div className="max-w-xl mx-auto w-full py-6 sm:py-0">
-                    <div className="text-center mb-8 sm:mb-10">
+                    <div className="text-center mb-8 sm:mb-12">
                       <div className="w-16 h-16 sm:w-20 sm:h-20 bg-brand-sidebar rounded-full flex items-center justify-center text-brand-primary mx-auto mb-4 sm:mb-6">
                         <MessageCircle size={32} className="sm:size-10 opacity-40" />
                       </div>
-                      <h3 className="serif text-2xl sm:text-3xl italic text-stone-800 mb-2">Mulai Konsultasi Baru</h3>
+                      <h3 className="serif text-2xl sm:text-3xl italic text-stone-800 mb-2">Pilih Topik Konsultasi</h3>
                       <p className="text-[10px] sm:text-xs text-stone-500 italic font-medium px-4">Bapak/Ibu Guru BK siap mendengarkan dan menjaga rahasiamu.</p>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 px-2 sm:px-0">
-                      {categories.map((cat) => (
-                        <button
-                          key={cat}
-                          onClick={() => startNewConsultation(cat)}
-                          className="p-6 sm:p-8 rounded-[32px] sm:rounded-[40px] border border-stone-100 hover:border-brand-accent/30 hover:bg-brand-sidebar/30 transition-all text-left group bg-white shadow-sm"
-                        >
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-brand-sidebar rounded-2xl flex items-center justify-center text-brand-secondary mb-4 sm:mb-6 group-hover:scale-110 transition-transform">
-                            <Shield size={20} className="sm:size-[22px]" />
-                          </div>
-                          <span className="font-black text-stone-800 text-xs sm:text-sm uppercase tracking-widest block mb-1">{cat}</span>
-                          <span className="text-[9px] sm:text-[10px] text-stone-400 italic">Klik untuk mulai chat privat</span>
-                        </button>
-                      ))}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 px-2 sm:px-0">
+                      {categories.map((cat) => {
+                        const info = categoryDetails[cat];
+                        const Icon = info.icon;
+                        return (
+                          <button
+                            key={cat}
+                            onClick={() => startNewConsultation(cat)}
+                            className="p-6 rounded-[40px] border border-stone-100 hover:border-brand-accent/30 hover:bg-brand-sidebar/30 transition-all text-left group bg-white shadow-sm flex flex-col"
+                          >
+                            <div className={`w-12 h-12 ${info.color} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
+                              <Icon size={22} />
+                            </div>
+                            <span className="font-black text-stone-800 text-xs sm:text-sm uppercase tracking-widest block mb-2">{cat}</span>
+                            <span className="text-[10px] text-stone-400 italic leading-relaxed">{info.desc}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 ) : (

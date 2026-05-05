@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, db, signInWithGoogle } from './lib/firebase';
+import { auth, db, signInWithGoogle, testConnection } from './lib/firebase';
 import { UserProfile } from './types';
 
 // Pages
@@ -190,6 +190,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    testConnection();
     const fetchSettings = async () => {
       try {
         const settingsDoc = await getDoc(doc(db, 'settings', 'branding'));
