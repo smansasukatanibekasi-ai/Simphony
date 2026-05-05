@@ -17,7 +17,8 @@ export default function LoginPage() {
       if (err.code === 'auth/popup-blocked') {
         setError('Popup terblokir oleh browser. Tolong izinkan popup untuk situs ini.');
       } else if (err.code === 'auth/unauthorized-domain') {
-        setError('Domain tidak diizinkan. Hubungi pengembang untuk menambahkan domain ini ke Firebase.');
+        const domain = window.location.hostname;
+        setError(`Domain "${domain}" tidak diizinkan. Mohon tambahkan domain ini ke "Authorized domains" di Firebase Console (Authentication > Settings).`);
       } else {
         setError('Gagal masuk. Silakan coba lagi.');
       }
