@@ -96,24 +96,21 @@ export default function ConsultationPage({ user, profile }: { user: any, profile
     }
   };
   
-  const handleDeleteMessage = async (index: number) => {
-    if (!activeConsultation || !user) return;
-    const path = `consultations/${activeConsultation.id}`;
+  const handleDeleteMessage = async (msg: Message) => {
+    if (!activeConsultation || !user || !activeConsultation.id) return;
 
     // Confirm deletion
     if (!window.confirm('Hapus pesan ini?')) return;
 
     try {
-      const updatedMessages = [...activeConsultation.messages];
-      updatedMessages.splice(index, 1);
-
-      const consultationRef = doc(db, 'consultations', activeConsultation.id!);
+      const consultationRef = doc(db, 'consultations', activeConsultation.id);
       await updateDoc(consultationRef, {
-        messages: updatedMessages,
+        messages: arrayRemove(msg),
         updatedAt: serverTimestamp(),
       });
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, path);
+    } catch (error: any) {
+      console.error('Delete error:', error);
+      alert('Gagal menghapus pesan. Silakan coba lagi.');
     }
   };
 
@@ -362,7 +359,7 @@ export default function ConsultationPage({ user, profile }: { user: any, profile
 
                           {(isMe || isAdmin) && (
                             <button 
-                              onClick={() => handleDeleteMessage(idx)}
+                              onClick={() => handleDeleteMessage(msg)}
                               className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 p-2 text-stone-300 hover:text-rose-500 transition-all self-center"
                               title="Hapus Pesan"
                             >
