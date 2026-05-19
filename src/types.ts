@@ -25,6 +25,14 @@ export interface UserProfile {
   isAdmin?: boolean;
 }
 
+export interface Comment {
+  id: string;
+  authorId: string;
+  authorName: string;
+  content: string;
+  createdAt: Timestamp;
+}
+
 export interface Post {
   id?: string;
   authorId: string;
@@ -32,6 +40,7 @@ export interface Post {
   content: string;
   createdAt: Timestamp;
   likes: string[];
+  comments: Comment[];
 }
 
 export interface Message {

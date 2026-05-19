@@ -40,18 +40,18 @@ service cloud.firestore {
     // 2. Community Posts
     match /posts/{postId} {
       allow read: if isSignedIn();
-      allow create: if isVerified() && isValidPost(incoming());
+      allow create: if isVerified() && isValidPost(incoming()) && isOwner(incoming().authorId);
       allow update: if isVerified() && (
-        (isOwner(existing().authorId) && isValidPost(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['content', 'likes'])) ||
-        (isValidPost(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['likes']))
+        (isOwner(existing().authorId) && incoming().diff(existing()).affectedKeys().hasOnly(['content', 'likes', 'comments'])) ||
+        (incoming().diff(existing()).affectedKeys().hasOnly(['likes', 'comments']))
       );
       allow delete: if isAdmin() || (isSignedIn() && isOwner(existing().authorId));
 
       function isValidPost(data) {
-        return data.authorId == request.auth.uid &&
-               data.content is string && data.content.size() > 0 && data.content.size() < 5000 &&
-               data.authorName is string &&
-               data.createdAt is timestamp;
+        return data.get('authorId', '') is string &&
+               data.get('content', '') is string && data.content.size() > 0 &&
+               data.get('authorName', '') is string &&
+               data.get('createdAt', timestamp.date(2000, 1, 1)) is timestamp;
       }
     }
 

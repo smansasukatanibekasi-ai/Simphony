@@ -407,6 +407,24 @@ export default function ConsultationPage({ user, profile }: { user: any, profile
                 {/* Chat Input */}
                 {activeConsultation.status === ConsultationStatus.OPEN && (
                   <div className="p-4 sm:p-8 bg-white border-t border-stone-50">
+                    {isAdmin && (
+                      <div className="mb-4 flex flex-wrap gap-2">
+                        {[
+                          "Terima kasih sudah berbagi, kamu sangat berani.",
+                          "Bapak/Ibu di sini untuk mendengarmu. Mari kita cari solusi bersama.",
+                          "Ceritamu aman bersama kami. Bagaimana perasaanmu sekarang?",
+                          "Kamu tidak sendirian, kami siap mendukungmu."
+                        ].map((template, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setNewMessage(template)}
+                            className="text-[9px] font-bold px-3 py-1.5 bg-brand-sidebar text-brand-primary rounded-full hover:bg-brand-primary hover:text-white transition-colors italic"
+                          >
+                            + {template.split(' ').slice(0, 3).join(' ')}...
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     <div className="relative">
                       <textarea 
                         value={newMessage}

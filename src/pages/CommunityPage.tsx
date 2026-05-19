@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Send, Heart, MessageCircle, User, Share2, Plus, X, Trash2 } from 'lucide-react';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, updateDoc, doc, arrayUnion, arrayRemove, deleteDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, updateDoc, doc, arrayUnion, arrayRemove, deleteDoc, Timestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Post, UserProfile } from '../types';
 
@@ -10,6 +10,8 @@ export default function CommunityPage({ user, profile }: { user: any, profile: U
   const [isPosting, setIsPosting] = useState(false);
   const [newPostContent, setNewPostContent] = useState('');
   const [loading, setLoading] = useState(true);
+  const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(null);
+  const [newComment, setNewComment] = useState('');
 
   const isAdmin = profile?.isAdmin || false;
 
@@ -43,6 +45,7 @@ export default function CommunityPage({ user, profile }: { user: any, profile: U
         authorName: user.displayName || 'Siswa',
         content: newPostContent,
         likes: [],
+        comments: [],
         createdAt: serverTimestamp(),
       });
       setNewPostContent('');
@@ -77,6 +80,28 @@ export default function CommunityPage({ user, profile }: { user: any, profile: U
       await deleteDoc(doc(db, 'posts', postId));
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, path);
+    }
+  };
+
+  const handleComment = async (postId: string) => {
+    if (!user || !newComment.trim()) return;
+
+    const path = `posts/${postId}`;
+    const postRef = doc(db, 'posts', postId);
+
+    try {
+      await updateDoc(postRef, {
+        comments: arrayUnion({
+          id: Math.random().toString(36).substring(2, 9),
+          authorId: user.uid,
+          authorName: user.displayName || 'Siswa',
+          content: newComment,
+          createdAt: Timestamp.now()
+        })
+      });
+      setNewComment('');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, path);
     }
   };
 
@@ -203,14 +228,71 @@ export default function CommunityPage({ user, profile }: { user: any, profile: U
                   />
                   <span className="text-xs font-bold">{post.likes.length}</span>
                 </button>
-                <button className="flex items-center gap-2 text-stone-400 hover:text-brand-primary transition-colors">
+                <button 
+                  onClick={() => setActiveCommentPostId(activeCommentPostId === post.id ? null : (post.id || null))}
+                  className={`flex items-center gap-2 transition-colors ${
+                    activeCommentPostId === post.id ? 'text-brand-primary' : 'text-stone-400 hover:text-brand-primary'
+                  }`}
+                >
                   <MessageCircle size={18} />
-                  <span className="text-xs font-bold">Komentar</span>
+                  <span className="text-xs font-bold">
+                    {(post.comments?.length || 0) > 0 ? `${post.comments.length} Komentar` : 'Komentar'}
+                  </span>
                 </button>
                 <div className="ml-auto text-brand-accent/40">
                   <Share2 size={16} />
                 </div>
               </div>
+
+              <AnimatePresence>
+                {activeCommentPostId === post.id && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pt-8 space-y-6">
+                      <div className="space-y-4">
+                        {post.comments?.map((comment) => (
+                          <div key={comment.id} className="flex gap-3 items-start bg-stone-50/50 p-4 rounded-3xl border border-stone-100/50">
+                            <div className="w-8 h-8 bg-brand-sidebar rounded-full flex items-center justify-center text-brand-primary text-xs shrink-0 border border-stone-100">
+                              {comment.authorName[0]}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="text-[10px] font-bold text-stone-700">{comment.authorName}</span>
+                                <span className="text-[9px] text-stone-400">
+                                  {comment.createdAt?.toDate().toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                                </span>
+                              </div>
+                              <p className="text-xs text-stone-500 italic">{comment.content}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="flex gap-3">
+                        <input 
+                          type="text"
+                          value={newComment}
+                          onChange={(e) => setNewComment(e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && handleComment(post.id!)}
+                          placeholder="Tulis komentar..."
+                          className="flex-1 bg-stone-100 border-none rounded-full px-5 py-2 text-xs focus:ring-1 focus:ring-brand-accent placeholder:text-stone-400 italic"
+                        />
+                        <button 
+                          onClick={() => handleComment(post.id!)}
+                          disabled={!newComment.trim()}
+                          className="bg-brand-primary text-white p-2 rounded-full hover:scale-105 transition-transform disabled:opacity-50"
+                        >
+                          <Send size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           ))
         )}
