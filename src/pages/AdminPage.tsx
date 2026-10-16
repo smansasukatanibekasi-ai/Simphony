@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ShieldCheck, Users, MessageSquare, Heart, Trash2, Award, Zap, Settings, Camera, AlertCircle } from 'lucide-react';
+import { ShieldCheck, Users, MessageSquare, Heart, Trash2, Award, Zap, Settings, Camera, AlertCircle, Eye } from 'lucide-react';
 import { collection, query, getDocs, limit, orderBy, doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { UserProfile, Post, Consultation, PeerMessage } from '../types';
 import { Link } from 'react-router-dom';
 import Logo from '../components/Logo';
+import ConsultationAnalyticsDashboard from '../components/ConsultationAnalyticsDashboard';
+import StudentActivityModal from '../components/StudentActivityModal';
 
 export default function AdminPage({ profile }: { profile: UserProfile | null }) {
   const [stats, setStats] = useState({
@@ -14,6 +16,13 @@ export default function AdminPage({ profile }: { profile: UserProfile | null }) 
     consultations: 0,
     messages: 0
   });
+
+  const [consultations, setConsultations] = useState<Consultation[]>([]);
+  const [usersList, setUsersList] = useState<UserProfile[]>([]);
+  const [postsList, setPostsList] = useState<Post[]>([]);
+  const [peerMessagesList, setPeerMessagesList] = useState<PeerMessage[]>([]);
+  const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
+  const [loadingConsultations, setLoadingConsultations] = useState(true);
 
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [isUpdatingLogo, setIsUpdatingLogo] = useState(false);
@@ -36,10 +45,36 @@ export default function AdminPage({ profile }: { profile: UserProfile | null }) 
   useEffect(() => {
     const fetchStats = async () => {
       try {
+        setLoadingConsultations(true);
         const usersSnap = await getDocs(collection(db, 'users'));
         const postsSnap = await getDocs(collection(db, 'posts'));
         const consultSnap = await getDocs(collection(db, 'consultations'));
         const peerSnap = await getDocs(collection(db, 'peer_messages'));
+
+        const loadedConsultations = consultSnap.docs.map(d => ({
+          id: d.id,
+          ...d.data()
+        })) as Consultation[];
+
+        const loadedUsers = usersSnap.docs.map(d => ({
+          uid: d.id,
+          ...d.data()
+        })) as UserProfile[];
+
+        const loadedPosts = postsSnap.docs.map(d => ({
+          id: d.id,
+          ...d.data()
+        })) as Post[];
+
+        const loadedPeerMessages = peerSnap.docs.map(d => ({
+          id: d.id,
+          ...d.data()
+        })) as PeerMessage[];
+
+        setConsultations(loadedConsultations);
+        setUsersList(loadedUsers);
+        setPostsList(loadedPosts);
+        setPeerMessagesList(loadedPeerMessages);
 
         setStats({
           users: usersSnap.size,
@@ -49,6 +84,8 @@ export default function AdminPage({ profile }: { profile: UserProfile | null }) 
         });
       } catch (error) {
         console.error("Error fetching stats:", error);
+      } finally {
+        setLoadingConsultations(false);
       }
     };
     fetchStats();
@@ -101,7 +138,14 @@ export default function AdminPage({ profile }: { profile: UserProfile | null }) 
   };
 
   const statCards = [
-    { label: 'Total Siswa', value: stats.users, icon: Users, color: 'bg-blue-50 text-blue-600', link: '#' },
+    { 
+      label: 'Total Siswa', 
+      value: stats.users, 
+      icon: Users, 
+      color: 'bg-blue-50 text-blue-600', 
+      badge: 'Buka Aktivitas',
+      onClick: () => setIsStudentModalOpen(true) 
+    },
     { label: 'Cerita Komunitas', value: stats.posts, icon: MessageSquare, color: 'bg-emerald-50 text-emerald-600', link: '/komunitas' },
     { label: 'Sesi Bimbingan', value: stats.consultations, icon: Heart, color: 'bg-rose-50 text-rose-600', link: '/konsultasi' },
     { label: 'Resonansi Positif', value: stats.messages, icon: Zap, color: 'bg-brand-sidebar text-brand-primary', link: '/relaksasi' },
@@ -135,19 +179,45 @@ export default function AdminPage({ profile }: { profile: UserProfile | null }) 
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat, idx) => (
-          <Link 
-            key={idx}
-            to={stat.link}
-            className="bg-white p-8 rounded-[40px] border border-stone-100 card-shadow hover:scale-[1.02] transition-all group"
-          >
-            <div className={`w-12 h-12 ${stat.color} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
-              <stat.icon size={24} />
-            </div>
-            <p className="text-3xl font-bold text-stone-800 mb-1">{stat.value}</p>
-            <p className="text-[10px] text-stone-400 font-extrabold uppercase tracking-widest">{stat.label}</p>
-          </Link>
+          stat.onClick ? (
+            <button
+              key={idx}
+              onClick={stat.onClick}
+              className="bg-white p-8 rounded-[40px] border border-blue-200/90 card-shadow hover:scale-[1.02] transition-all group text-left cursor-pointer relative ring-2 ring-blue-500/10 hover:border-blue-400 hover:shadow-lg"
+            >
+              <span className="absolute top-6 right-6 text-[9px] font-black uppercase tracking-wider bg-blue-50 text-blue-600 px-2.5 py-1 rounded-full group-hover:bg-blue-600 group-hover:text-white transition-colors flex items-center gap-1">
+                <Eye size={10} /> {stat.badge}
+              </span>
+              <div className={`w-12 h-12 ${stat.color} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
+                <stat.icon size={24} />
+              </div>
+              <p className="text-3xl font-bold text-stone-800 mb-1">{stat.value}</p>
+              <p className="text-[10px] text-stone-400 font-extrabold uppercase tracking-widest">{stat.label}</p>
+              <p className="text-[9px] text-blue-500 font-bold mt-1.5 flex items-center gap-1">
+                <span>Klik untuk lihat aktivitas & masalah siswa</span>
+              </p>
+            </button>
+          ) : (
+            <Link 
+              key={idx}
+              to={stat.link!}
+              className="bg-white p-8 rounded-[40px] border border-stone-100 card-shadow hover:scale-[1.02] transition-all group"
+            >
+              <div className={`w-12 h-12 ${stat.color} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
+                <stat.icon size={24} />
+              </div>
+              <p className="text-3xl font-bold text-stone-800 mb-1">{stat.value}</p>
+              <p className="text-[10px] text-stone-400 font-extrabold uppercase tracking-widest">{stat.label}</p>
+            </Link>
+          )
         ))}
       </div>
+
+      {/* Visual Analytics Dashboard for BK Topic Trend Mapping */}
+      <ConsultationAnalyticsDashboard 
+        consultations={consultations} 
+        loading={loadingConsultations} 
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
         <div className="bg-white p-10 rounded-[50px] border border-stone-100 card-shadow space-y-8">
@@ -240,6 +310,16 @@ export default function AdminPage({ profile }: { profile: UserProfile | null }) 
           </Link>
         </div>
       </div>
+
+      {/* Student Activity & Consultation History Modal */}
+      <StudentActivityModal 
+        isOpen={isStudentModalOpen} 
+        onClose={() => setIsStudentModalOpen(false)} 
+        users={usersList} 
+        consultations={consultations} 
+        posts={postsList} 
+        peerMessages={peerMessagesList} 
+      />
     </motion.div>
   );
 }
